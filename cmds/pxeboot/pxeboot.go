@@ -12,10 +12,12 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/u-root/dhcp4/dhcp4client"
 	"github.com/u-root/u-root/pkg/boot"
+	"github.com/u-root/u-root/pkg/cmdline"
 	"github.com/u-root/u-root/pkg/dhclient"
 	"github.com/u-root/u-root/pkg/ipxe"
 	"github.com/u-root/u-root/pkg/pxe"
@@ -23,10 +25,31 @@ import (
 )
 
 var (
-	verbose = flag.Bool("v", true, "print all kinds of things out, more than Chris wants")
-	dryRun  = flag.Bool("dry-run", false, "download kernel, but don't kexec it")
-	debug   = func(string, ...interface{}) {}
+	verbose          = flag.Bool("v", true, "print all kinds of things out, more than Chris wants")
+	dryRun           = flag.Bool("dry-run", false, "download kernel, but don't kexec it")
+	debug            = func(string, ...interface{}) {}
+	reuseCmdlineItem = flag.String("reuse", "console", "comma separated list of kernel params value to reuse from current kernel (default to console)")
+	appendCmdline    = flag.String("append", "", "Additional kernel params")
 )
+
+// updateBootCmdline get the kernel command line parameters and append extra
+// parameters from the append and reuse flags
+func updateBootCmdline(cl string) string {
+	acl := ""
+	if len(*appendCmdline) > 0 {
+		acl = " " + *appendCmdline
+	}
+	for _, f := range strings.Split(*reuseCmdlineItem, ",") {
+		value, present := cmdline.Flag(f)
+		if present {
+			debug("Cmdline reuse: %s=%v", f, value)
+			acl = fmt.Sprintf("%s %s=%s", acl, f, value)
+		}
+		debug("appendCmdline : '%v'", acl)
+	}
+
+	return cl + acl
+}
 
 func attemptDHCPLease(iface netlink.Link, timeout time.Duration, retry int) (*dhclient.Packet4, error) {
 	if _, err := dhclient.IfUp(iface.Attrs().Name); err != nil {
@@ -118,6 +141,8 @@ func Netboot() error {
 		if err != nil {
 			return err
 		}
+
+		img.Cmdline = updateBootCmdline(img.Cmdline)
 
 		if *dryRun {
 			img.ExecutionInfo(log.New(os.Stderr, "", log.LstdFlags))
