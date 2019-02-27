@@ -74,6 +74,7 @@ func getBootImage(uri *url.URL, mac net.HardwareAddr, ip net.IP) (*boot.LinuxIma
 	return label, nil
 }
 
+// Netboot tries to boot from eth0 over tftp by parsing pxelinux configuration
 func Netboot() error {
 	ifs, err := netlink.LinkList()
 	if err != nil {
