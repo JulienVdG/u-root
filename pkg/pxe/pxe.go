@@ -49,6 +49,7 @@ type Config struct {
 	globalAppend string
 	scope        scope
 	curEntry     string
+	firstEntry   string
 	wd           *url.URL
 	schemes      Schemes
 }
@@ -200,6 +201,9 @@ func (c *Config) Append(config string) error {
 			c.curEntry = arg
 			c.Entries[c.curEntry] = &boot.LinuxImage{}
 			c.Entries[c.curEntry].Cmdline = c.globalAppend
+			if len(c.firstEntry) == 0 {
+				c.firstEntry = arg
+			}
 
 		case "kernel":
 			k, err := c.GetFile(arg)
@@ -258,6 +262,11 @@ func (c *Config) Append(config string) error {
 	}
 
 	if len(c.DefaultEntry) > 0 {
+		// When the default is to lanch a menu (menu.c32 or vgamenu.c32)
+		// syslinux will select the first entry, so do the same
+		if strings.HasSuffix(c.DefaultEntry, "menu.c32") {
+			c.DefaultEntry = c.firstEntry
+		}
 		if _, ok := c.Entries[c.DefaultEntry]; !ok {
 			return ErrDefaultEntryNotFound
 		}
