@@ -44,6 +44,7 @@ func attemptDHCPLease(iface netlink.Link, timeout time.Duration, retry int) (*dh
 	return dhclient.NewPacket4(p), nil
 }
 
+// Netboot tries to boot from eth0 over tftp by parsing pxelinux configuration
 func Netboot() error {
 	ifs, err := netlink.LinkList()
 	if err != nil {
