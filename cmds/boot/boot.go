@@ -40,6 +40,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"unicode"
 
 	"github.com/u-root/u-root/pkg/cmdline"
 	"github.com/u-root/u-root/pkg/kexec"
@@ -57,15 +58,71 @@ type bootEntry struct {
 }
 
 var (
-	devGlob          = flag.String("dev", "/sys/block/*", "Glob for devices")
-	verbose          = flag.Bool("v", false, "Print debug messages")
-	debug            = func(string, ...interface{}) {}
-	dryRun           = flag.Bool("dry-run", false, "download kernel, but don't kexec it")
-	defaultBoot      = flag.String("boot", "default", "Default entry to boot")
-	uroot            string
-	reuseCmdlineItem = flag.String("reuse", "console", "comma separated list of kernel params value to reuse from current kernel (default to console)")
-	appendCmdline    = flag.String("append", "", "Additional kernel params")
+	devGlob           = flag.String("dev", "/sys/block/*", "Glob for devices")
+	verbose           = flag.Bool("v", false, "Print debug messages")
+	debug             = func(string, ...interface{}) {}
+	dryRun            = flag.Bool("dry-run", false, "download kernel, but don't kexec it")
+	defaultBoot       = flag.String("boot", "default", "Default entry to boot")
+	uroot             string
+	removeCmdlineItem = flag.String("remove", "console", "comma separated list of kernel params value to remove from parsed kernel configuration (default to console)")
+	reuseCmdlineItem  = flag.String("reuse", "console", "comma separated list of kernel params value to reuse from current kernel (default to console)")
+	appendCmdline     = flag.String("append", "", "Additional kernel params")
 )
+
+func removeFromCmdline(cl string, fields []string) string {
+	var newCl []string
+
+	// kernel variables must allow '-' and '_' to be equivalent in variable
+	// names. We will replace dashes with underscores for processing.
+	for _, f := range fields {
+		f = strings.Replace(f, "-", "_", -1)
+	}
+
+	lastQuote := rune(0)
+	quotedFieldsCheck := func(c rune) bool {
+		switch {
+		case c == lastQuote:
+			lastQuote = rune(0)
+			return false
+		case lastQuote != rune(0):
+			return false
+		case unicode.In(c, unicode.Quotation_Mark):
+			lastQuote = c
+			return false
+		default:
+			return unicode.IsSpace(c)
+		}
+	}
+
+	for _, flag := range strings.FieldsFunc(string(cl), quotedFieldsCheck) {
+
+		// Split the flag into a key and value, setting value="1" if none
+		split := strings.Index(flag, "=")
+
+		if len(flag) == 0 {
+			continue
+		}
+		var key string
+		if split == -1 {
+			key = flag
+		} else {
+			key = flag[:split]
+		}
+		canonicalKey := strings.Replace(key, "-", "_", -1)
+		skip := false
+		for _, f := range fields {
+			if canonicalKey == f {
+				skip = true
+				break
+			}
+		}
+		if skip {
+			continue
+		}
+		newCl = append(newCl, flag)
+	}
+	return strings.Join(newCl, " ")
+}
 
 // updateBootCmdline get the kernel command line parameters and append extra
 // parameters from the append and reuse flags
@@ -83,7 +140,7 @@ func updateBootCmdline(cl string) string {
 		debug("appendCmdline : '%v'", acl)
 	}
 
-	return cl + acl
+	return removeFromCmdline(cl, strings.Split(*removeCmdlineItem, ",")) + acl
 }
 
 // checkForBootableMBR is looking for bootable MBR signature
