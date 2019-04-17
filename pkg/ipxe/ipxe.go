@@ -65,7 +65,7 @@ func (c *Config) getAndParseFile(u *url.URL) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("Got config file %s:\n%s\n", r, string(config))
+	//log.Printf("Got config file %s:\n%s\n", r, string(config))
 	return c.parseIpxe(string(config))
 }
 
