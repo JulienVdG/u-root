@@ -69,7 +69,7 @@ func (c *Config) getAndParseFile(u *url.URL) error {
 	if !strings.HasPrefix(config, "#!ipxe") {
 		return ErrNotIpxeScript
 	}
-	log.Printf("Got ipxe config file %s:\n%s\n", r, config)
+	//log.Printf("Got ipxe config file %s:\n%s\n", r, config)
 	return c.parseIpxe(config)
 }
 
