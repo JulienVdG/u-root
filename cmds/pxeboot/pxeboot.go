@@ -46,7 +46,7 @@ func Netboot(ifaceNames string) error {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), dhcpTries*dhcpTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), (1<<dhcpTries)*dhcpTimeout)
 	defer cancel()
 
 	r := dhclient.SendRequests(ctx, filteredIfs, dhcpTimeout, dhcpTries, true, true)
