@@ -73,7 +73,7 @@ func main() {
 func configureAll(ifs []netlink.Link) {
 	packetTimeout := time.Duration(*timeout) * time.Second
 
-	ctx, cancel := context.WithTimeout(context.Background(), packetTimeout*time.Duration(*retry))
+	ctx, cancel := context.WithTimeout(context.Background(), packetTimeout*time.Duration(1<<uint(*retry)))
 	defer cancel()
 
 	r := dhclient.SendRequests(ctx, ifs, packetTimeout, *retry, *ipv4, *ipv6)
