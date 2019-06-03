@@ -26,6 +26,8 @@ import (
 
 var (
 	dryRun            = flag.Bool("dry-run", false, "download kernel, but don't kexec it")
+	ipv4              = flag.Bool("ipv4", true, "use IPV4")
+	ipv6              = flag.Bool("ipv6", true, "use IPV6")
 	removeCmdlineItem = flag.String("remove", "console", "comma separated list of kernel params value to remove from parsed kernel configuration (default to console)")
 	reuseCmdlineItem  = flag.String("reuse", "console", "comma separated list of kernel params value to reuse from current kernel (default to console)")
 	appendCmdline     = flag.String("append", "", "Additional kernel params")
@@ -61,7 +63,7 @@ func Netboot(ifaceNames string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), (1<<dhcpTries)*dhcpTimeout)
 	defer cancel()
 
-	r := dhclient.SendRequests(ctx, filteredIfs, dhcpTimeout, dhcpTries, true, true)
+	r := dhclient.SendRequests(ctx, filteredIfs, dhcpTimeout, dhcpTries, *ipv4, *ipv6)
 
 	for {
 		select {
