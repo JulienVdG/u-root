@@ -118,6 +118,7 @@ func getBootImage(uri *url.URL, mac net.HardwareAddr, ip net.IP) (*boot.LinuxIma
 	return label, nil
 }
 
+// Boot tries to fetch the ipxe or pxe configuration from a dhcp lease
 func Boot(lease dhclient.Lease) (*boot.LinuxImage, error) {
 	if err := lease.Configure(); err != nil {
 		return nil, err
