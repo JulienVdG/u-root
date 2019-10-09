@@ -276,6 +276,7 @@ func (c *Client) DiscoverOffer(ctx context.Context, modifiers ...dhcpv4.Modifier
 //
 // Note that modifiers will be applied *both* to Discover and Request packets.
 func (c *Client) Request(ctx context.Context, modifiers ...dhcpv4.Modifier) (offer, ack *dhcpv4.DHCPv4, err error) {
+	log.Printf("discover")
 	offer, err = c.DiscoverOffer(ctx, modifiers...)
 	if err != nil {
 		return nil, nil, err
@@ -348,6 +349,7 @@ var errDeadlineExceeded = errors.New("INTERNAL ERROR: deadline exceeded")
 func (c *Client) SendAndRead(ctx context.Context, dest *net.UDPAddr, p *dhcpv4.DHCPv4, match Matcher) (*dhcpv4.DHCPv4, error) {
 	var response *dhcpv4.DHCPv4
 	err := c.retryFn(func(timeout time.Duration) error {
+		log.Printf("sending packet %s", p)
 		ch, rem, err := c.send(dest, p)
 		if err != nil {
 			return err
@@ -366,6 +368,7 @@ func (c *Client) SendAndRead(ctx context.Context, dest *net.UDPAddr, p *dhcpv4.D
 				return ctx.Err()
 
 			case packet := <-ch:
+				log.Printf("got a packet? %s", packet)
 				if match == nil || match(packet) {
 					response = packet
 					return nil
