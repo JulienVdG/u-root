@@ -56,7 +56,7 @@ func init() {
 
 func runOSInitGo() {
 	// Install modules before exec-ing into user mode below
-	installModules()
+	//installModules()
 
 	// systemd is "special". If we are supposed to run systemd, we're
 	// going to exec, and if we're going to exec, we're done here.
