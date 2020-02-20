@@ -24,11 +24,13 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/u-root/u-root/pkg/boot"
 	"github.com/u-root/u-root/pkg/boot/netboot"
 	"github.com/u-root/u-root/pkg/curl"
+	"github.com/u-root/u-root/pkg/cmdline"
 	"github.com/u-root/u-root/pkg/dhclient"
 )
 
@@ -37,12 +39,23 @@ var (
 	noLoad  = flag.Bool("no-load", false, "get DHCP response, but don't load the kernel")
 	dryRun  = flag.Bool("dry-run", false, "download kernel, but don't kexec it")
 	verbose = flag.Bool("v", false, "Verbose output")
+	removeCmdlineItem = flag.String("remove", "console", "comma separated list of kernel params value to remove from parsed kernel configuration (default to console)")
+	reuseCmdlineItem  = flag.String("reuse", "console", "comma separated list of kernel params value to reuse from current kernel (default to console)")
+	appendCmdline     = flag.String("append", "", "Additional kernel params")
 )
 
 const (
 	dhcpTimeout = 5 * time.Second
 	dhcpTries   = 3
 )
+
+// updateBootCmdline get the kernel command line parameters and filter it:
+// it removes parameters listed in 'remove' and append extra parameters from
+// the 'append' and 'reuse' flags
+func updateBootCmdline(cl string) string {
+	f := cmdline.NewUpdateFilter(*appendCmdline, strings.Split(*removeCmdlineItem, ","), strings.Split(*reuseCmdlineItem, ","))
+	return f.Update(cl)
+}
 
 // Netboot boots all interfaces matched by the regex in ifaceNames.
 func Netboot(ifaceNames string) error {
@@ -97,6 +110,10 @@ func Netboot(ifaceNames string) error {
 			if *noLoad {
 				return nil
 			}
+
+			// Filter the command line parameters
+			img.Cmdline = updateBootCmdline(img.Cmdline)
+
 			if err := img.Load(*dryRun); err != nil {
 				return fmt.Errorf("kexec load of %v failed: %v", img, err)
 			}
